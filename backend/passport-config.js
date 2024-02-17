@@ -1,6 +1,7 @@
 const LocalStrategy = require('passport-local').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const bcrypt = require('bcryptjs');
 const { User } = require('./models/models'); // Adjust the path as necessary
 
@@ -86,6 +87,20 @@ function initialize(passport) {
 //     done(null, user);
 //   }
 // ));
+
+passport.use(new FacebookStrategy({
+  clientID: process.env.FACEBOOK_APP_ID,
+  clientSecret: process.env.FACEBOOK_APP_SECRET,
+  callbackURL: "http://localhost:3000/auth/facebook/callback",
+  profileFields: ['id', 'displayName', 'photos', 'email'] // Fields you want from Facebook's profile
+},
+function(accessToken, refreshToken, profile, cb) {
+  // Find or create a user in your database
+  User.findOrCreate({ facebookId: profile.id }, function (err, user) {
+    return cb(err, user);
+  });
+}
+));
 }
 
 module.exports = initialize;

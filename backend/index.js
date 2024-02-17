@@ -1,15 +1,13 @@
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
-const LocalStrategy = require('passport-local').Strategy;
-const JWTStrategy = require('passport-jwt').Strategy;
-const ExtractJWT = require('passport-jwt').ExtractJwt;
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 require('dotenv').config()
-const {User} = require('./models/models');
+const { User, Accommodation, Booking, FriendRequest } = require('./models/models');
+
+const { authenticateRequest } = require("./auth_common_library")
+
 const cors = require('cors')
 
 const app = express();
@@ -39,7 +37,11 @@ app.use(session({
     passport
   );
 
-// Routes
+  const accommodationRoutes = require('./routes/accommodations');
+
+  app.use('/api/accommodations', accommodationRoutes)
+
+// Auth Routes
 app.get('/', (req, res) => {
   res.send('Home Page');
 });
@@ -62,6 +64,17 @@ app.get('/auth/linkedin',
 app.get('/auth/linkedin/callback', 
   passport.authenticate('linkedin', { failureRedirect: '/login' }),
   (req, res) => {
+    res.redirect('/');
+  }
+);
+
+// Facebook
+app.get('/auth/facebook', passport.authenticate('facebook'));
+
+app.get('/auth/facebook/callback',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
     res.redirect('/');
   }
 );
@@ -90,20 +103,14 @@ app.post('/login', (req, res) => {
 
   app.post('/register', async (req, res) => {
     try {
-      const { email, password, fullname, roles } = req.body;
-  
-      // Validate roles (optional)
-      const validRoles = ['developer', 'project_manager', 'architect', 'stakeholder'];
-      if (roles.some(role => !validRoles.includes(role))) {
-        return res.status(400).send('Invalid role(s) provided');
-      }
+      const { email, password, name, roles } = req.body;
   
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).send('Email is already in use');
       }
   
-      const user = new User({ email, password, fullname, roles });
+      const user = new User({ email, password, name, roles });
       await user.save();
   
       res.status(201).json({message: "User registered successfully"});
@@ -129,6 +136,95 @@ app.post('/login', (req, res) => {
       res.status(200).json({ isValid: true });
     });
   });
+
+  // Friends components
+  // Fetch current friends
+
+  const friendsRoutes = require('./routes/friends');
+
+  app.use('/api/friends', friendsRoutes)
+
+const bookingRoutes = require('./routes/bookings');
+
+app.use('/api/bookings', bookingRoutes)
+
+app.get('/api/myProfile', authenticateRequest, async (req, res) => {
+  if (!req.user) {
+    return res.status(403).json({ message: 'User not authenticated' });
+  }
+
+  try {
+    // Assuming req.user.id contains the authenticated user's ID
+    const userProfile = await User.findById(req.user.id, 'name credits');
+    if (!userProfile) {
+      return res.status(404).json({ message: 'User profile not found' });
+    }
+
+    res.json(userProfile);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user profile', error: error.message });
+  }
+});
+
+
+// Test
+app.get('/api/add-mock-data', async (req, res) => {
+  try {
+    // Mock User Data
+    const user1 = new User({
+      email: 'john.doe@example.com',
+      password: 'password123', // Make sure to hash passwords in your User model's pre-save middleware
+      name: 'John Doe',
+      company: 'Example Inc',
+    });
+
+    const user2 = new User({
+      email: 'jane.doe@example.com',
+      password: 'password123',
+      name: 'Jane Doe',
+      company: 'Example Corp',
+    });
+
+    await user1.save();
+    await user2.save();
+
+    // Mock Accommodation Data
+    const accommodation = new Accommodation({
+      address: '123 Main St',
+      zipCode: '12345',
+      state: 'NY',
+      country: 'USA',
+      private: true,
+      type: 'room',
+    });
+
+    await accommodation.save();
+
+    // Mock Booking Data
+    const booking = new Booking({
+      host: user1._id,
+      guest: user2._id,
+      date: new Date(),
+      state: 'confirmed',
+    });
+
+    await booking.save();
+
+    // Mock FriendRequest Data
+    const friendRequest = new FriendRequest({
+      sender: user1._id,
+      receiver: user2._id,
+      status: 'pending',
+    });
+
+    await friendRequest.save();
+
+    res.json({ message: 'Mock data added successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

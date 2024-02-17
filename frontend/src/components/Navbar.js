@@ -14,17 +14,12 @@ const Navbar = ({isLoggedIn}) => {
     window.location.reload()
 
   };
-  const handleRegister = () => console.log('Register');
-  const handleAbout = () => console.log('About');
-  const handleAccount = () => console.log('Account settings');
 
   return (
     <Menu>
       {isLoggedIn ? (
         <>
-          {/* Left-aligned items (if any) can go here */}
 
-          {/* Right-aligned items */}
           <Menu.Menu position="right">
             <Dropdown item text={`Role: ${role}`}>
               <Dropdown.Menu>

@@ -3,11 +3,12 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Register from './components/Register';
 import Login from './components/Login';
-// import Account from './Account';
-// import Profile from './components/Profile';
-// import Projects from './Projects';
+import Dashboard from './components/Dashboard';
+import Accommodations from './components/Accommodations';
+import Bookings from './components/Bookings';
+import Friends from './components/Friends';
+import Profile from './components/Profile';
 import 'semantic-ui-css/semantic.min.css';
-import UserSegment from './components/UserSegment';
 
 const checkTokenValidity = async () => {
   const token = localStorage.getItem('authToken');
@@ -47,21 +48,19 @@ function App() {
 
 
   return (
-    <Router>
-      <div>
+      <Router>
         <Navbar isLoggedIn={isLoggedIn} />
         <Routes>
-          <Route path="/register" element={<Register isLoggedIn={isLoggedIn} />} />
-          <Route path="/login" element={<Login isLoggedIn={isLoggedIn} />} />
-          {/* <Route path="/account" element={<Account />} /> */}
-          {/* <Route path="/profile" element={<Profile />} /> */}
-          {/* <Route path="/projects" element={<Projects />} /> */}
-          <Route path="/" element={<UserSegment isLoggedIn={isLoggedIn}/>} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Dashboard child={<Accommodations />} isLoggedIn={isLoggedIn} />} />
+          <Route path="/accommodations" element={<Dashboard child={<Accommodations />} />} />
+          <Route path="/profile" element={<Dashboard child={<Profile />} />} />
+          <Route path="/bookings" element={<Dashboard child={<Bookings />}/>} />
+          <Route path="/friends" element={<Dashboard child={<Friends />} />} />
         </Routes>
-        
-      </div>
-    </Router>
-  );
+      </Router>
+    );
 }
 
 export default App;
